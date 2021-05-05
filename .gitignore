@@ -1,0 +1,12 @@
+
+/target/
+
+.classpath
+.project
+/.settings/
+
+/data/
+
+/node_modules/
+/frontend/generated/
+webpack.generated.js
