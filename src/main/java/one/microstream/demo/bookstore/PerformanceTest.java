@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Range;
@@ -21,17 +23,29 @@ import one.microstream.demo.bookstore.data.RandomDataAmount;
 import one.microstream.demo.bookstore.data.Shop;
 import one.microstream.demo.bookstore.data.Shops;
 import one.microstream.persistence.types.Storer;
+import one.microstream.reference.LazyReferenceManager;
+import one.microstream.storage.types.StorageEntityCache;
+import spark.Spark;
 
 
 public class PerformanceTest
 {
+	static AtomicBoolean running = new AtomicBoolean(true);
+	static AtomicInteger threads = new AtomicInteger(0);
+	
+	
 	public static void main(final String[] args)
 	{
-		final BookStoreDemo demo = new BookStoreDemo(RandomDataAmount.Medium());
-//		new Reader(demo).start();
-//		new Reader(demo).start();
-//		new Reader(demo).start();
-//		new Reader(demo).start();
+		final BookStoreDemo demo = new BookStoreDemo(RandomDataAmount.Humongous());
+		
+		initShutdownHook(demo);
+		
+		// force init
+		demo.data();
+				
+		StorageEntityCache.Default.DEBUG_setGarbageCollectionEnabled(true);
+		
+		new Reader(demo).start();
 		new Writer(demo).start();
 		
 	}
@@ -49,47 +63,57 @@ public class PerformanceTest
 		@Override
 		public void run()
 		{
-			final Random random = new Random();
-			Storer storer = this.demo.storageManager().createStorer();
-			long timeMark = System.currentTimeMillis();
-			int transactionSize = 0;
-			final IntSummaryStatistics stats = new IntSummaryStatistics();
+			threads.incrementAndGet();
 			
-			while(true)
+			final Random               random          = new Random();
+			Storer                     storer          = this.demo.storageManager().createStorer();
+			long                       timeMark        = System.currentTimeMillis();
+			int                        transactionSize = 0;
+			final IntSummaryStatistics stats           = new IntSummaryStatistics();
+			
+			while(running.get())
 			{
-				final int itemCount = 3;
-				final List<Purchase.Item> items = new ArrayList<>(itemCount);
-				final Books books = this.demo.data().books();
-				final Book book = books.compute(stream -> stream.skip(random.nextInt(books.bookCount())).findFirst().get());
+				final int                 itemCount = 3;
+				final List<Purchase.Item> items     = new ArrayList<>(itemCount);
+				final Books               books     = this.demo.data().books();
+				final Book                book      =
+					books.compute(stream -> stream.skip(random.nextInt(books.bookCount())).findFirst().get());
 				items.add(Purchase.Item.New(book, 1));
 				
-				final Shops shops = this.demo.data().shops();
-				final Shop shop = shops.compute(stream -> stream.skip(random.nextInt(shops.shopCount())).findFirst().get());
+				final Shops     shops     = this.demo.data().shops();
+				final Shop      shop      =
+					shops.compute(stream -> stream.skip(random.nextInt(shops.shopCount())).findFirst().get());
 				
-				final Employee employee = shop.randomEmployee(random);
+				final Employee  employee  = shop.randomEmployee(random);
 				
 				final Customers customers = this.demo.data().customers();
-				final Customer customer = customers.compute(stream -> stream.skip(random.nextInt(customers.customerCount())).findFirst().get());
-								
-				final Purchase purchase = Purchase.New(shop, employee, customer, LocalDateTime.now(), items);
+				final Customer  customer  = customers
+					.compute(stream -> stream.skip(random.nextInt(customers.customerCount())).findFirst().get());
+				
+				final Purchase  purchase  = Purchase.New(shop, employee, customer, LocalDateTime.now(), items);
 				this.demo.data().purchases().addAndRemoveRandom(purchase, storer);
 				transactionSize++;
 				
-				final long now = System.currentTimeMillis();
+				final long now            = System.currentTimeMillis();
 				final long ellapsedMillis = now - timeMark;
 				if(ellapsedMillis >= 1000L)
 				{
 					storer.commit();
 					storer = this.demo.storageManager().createStorer();
-
-					stats.accept(transactionSize);
-					System.out.println("Transactions: " + transactionSize + " in " + ellapsedMillis + ", avg=" + stats.getAverage());
 					
-					timeMark = now;
+					stats.accept(transactionSize);
+					this.demo.logger().info(
+						"Transactions: " + transactionSize + " in " + ellapsedMillis + ", avg=" + stats.getAverage()
+					);
+					
+					timeMark        = now;
 					transactionSize = 0;
 				}
 				
 			}
+			
+			threads.decrementAndGet();
+			
 		}
 	}
 	
@@ -107,10 +131,12 @@ public class PerformanceTest
 		@Override
 		public void run()
 		{
+			threads.incrementAndGet();
+			
 			int          type   = 0;
 			final Random random = new Random();
 			
-			while(true)
+			while(running.get())
 			{
 				final char letter = (char)('A' + random.nextInt(26));
 				
@@ -141,21 +167,23 @@ public class PerformanceTest
 					
 					case 3:
 					{
-						final Purchases purchases = this.demo.data().purchases();
-						final Range<Integer> years = purchases.years();
-						final int year = years.lowerEndpoint() + random.nextInt(years.upperEndpoint() - years.lowerEndpoint() + 1);
+						final Purchases      purchases = this.demo.data().purchases();
+						final Range<Integer> years     = purchases.years();
+						final int            year      =
+							years.lowerEndpoint() + random.nextInt(years.upperEndpoint() - years.lowerEndpoint() + 1);
 						purchases.bestSellerList(year);
 					}
 						break;
-						
+					
 					case 4:
 					{
-						final Purchases purchases = this.demo.data().purchases();
-						final Range<Integer> years = purchases.years();
-						final int year = years.lowerEndpoint() + random.nextInt(years.upperEndpoint() - years.lowerEndpoint() + 1);
+						final Purchases      purchases = this.demo.data().purchases();
+						final Range<Integer> years     = purchases.years();
+						final int            year      =
+							years.lowerEndpoint() + random.nextInt(years.upperEndpoint() - years.lowerEndpoint() + 1);
 						purchases.employeeOfTheYear(year);
 					}
-					break;
+						break;
 				}
 				
 				type++;
@@ -166,7 +194,7 @@ public class PerformanceTest
 				
 				try
 				{
-					Thread.sleep(10);
+					Thread.sleep(random.nextInt(100) + 100);
 				}
 				catch(final InterruptedException e)
 				{
@@ -175,8 +203,46 @@ public class PerformanceTest
 				
 			}
 			
+			threads.decrementAndGet();
+			
 		}
 		
+	}
+
+	private static void initShutdownHook(final BookStoreDemo demo)
+	{
+		Spark.port(1337);
+		Spark.get("/stop", (req, res) ->
+		{
+			demo.logger().info("Shutdown signal received");
+			
+			running.set(false);
+			
+			new Thread(() ->
+			{
+				do
+				{
+					try
+					{
+						Thread.sleep(500);
+					}
+					catch(final InterruptedException e)
+					{
+						// swallow
+					}
+				}
+				while(threads.get() > 0);
+				
+				demo.shutdown();
+				LazyReferenceManager.get().stop();
+				Spark.stop();
+				
+				demo.logger().info("Good bye!");
+				
+			}).start();
+			
+			return "OK";
+		});
 	}
 	
 }

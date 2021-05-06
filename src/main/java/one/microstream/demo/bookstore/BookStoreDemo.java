@@ -162,6 +162,8 @@ public final class BookStoreDemo implements HasLogger
 	 */
 	private EmbeddedStorageManager createStorageManager()
 	{
+		final long start = System.currentTimeMillis();
+		
 		this.logger().info("Initializing MicroStream StorageManager");
 
 		final EmbeddedStorageConfigurationBuilder configuration = EmbeddedStorageConfiguration.Builder()
@@ -189,6 +191,8 @@ public final class BookStoreDemo implements HasLogger
 
 			this.logger().info("Random data generated: " + metrics.toString());
 		}
+		
+		this.logger().info("Initialized in " + (System.currentTimeMillis() - start) +  " ms");
 
 		return storageManager;
 	}
