@@ -24,7 +24,6 @@ import one.microstream.demo.bookstore.data.Shop;
 import one.microstream.demo.bookstore.data.Shops;
 import one.microstream.persistence.types.Storer;
 import one.microstream.reference.LazyReferenceManager;
-import one.microstream.storage.types.StorageEntityCache;
 import spark.Spark;
 
 
@@ -36,15 +35,16 @@ public class PerformanceTest
 	
 	public static void main(final String[] args)
 	{
-		final BookStoreDemo demo = new BookStoreDemo(RandomDataAmount.Humongous());
+		final BookStoreDemo demo = new BookStoreDemo(RandomDataAmount.Medium());
+		
+		// custom channel count (used cores), must be a power of 2
+        // demo.setChannelCount(32);
 		
 		initShutdownHook(demo);
 		
 		// force init
 		demo.data();
 				
-		StorageEntityCache.Default.DEBUG_setGarbageCollectionEnabled(true);
-		
 		new Reader(demo).start();
 		new Writer(demo).start();
 		

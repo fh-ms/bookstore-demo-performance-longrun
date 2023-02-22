@@ -9,10 +9,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import one.microstream.demo.bookstore.BookStoreDemo;
 import one.microstream.demo.bookstore.util.concurrent.ReadWriteLocked;
 import one.microstream.persistence.types.Persister;
-import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 
 /**
  * All registered customers of this company.
@@ -27,18 +25,6 @@ import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 public interface Customers
 {
 	/**
-	 * Adds a new customer and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.add(customer, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param customer the new customer
-	 */
-	public default void add(final Customer customer)
-	{
-		this.add(customer, BookStoreDemo.getInstance().storageManager());
-	}
-
-	/**
 	 * Adds a new customer and stores it with the given persister.
 	 *
 	 * @param customer the new customer
@@ -46,18 +32,6 @@ public interface Customers
 	 * @see #add(Customer)
 	 */
 	public void add(Customer customer, Persister persister);
-
-	/**
-	 * Adds a range of new customers and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.addAll(customers, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param customers the new customers
-	 */
-	public default void addAll(final Collection<? extends Customer> customers)
-	{
-		this.addAll(customers, BookStoreDemo.getInstance().storageManager());
-	}
 
 	/**
 	 * Adds a range of new customers and stores it with the given persister.

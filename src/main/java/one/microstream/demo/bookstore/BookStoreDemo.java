@@ -24,21 +24,11 @@ import one.microstream.storage.embedded.configuration.types.EmbeddedStorageConfi
 import one.microstream.storage.embedded.configuration.types.EmbeddedStorageConfigurationBuilder;
 import one.microstream.storage.embedded.types.EmbeddedStorageFoundation;
 import one.microstream.storage.embedded.types.EmbeddedStorageManager;
+import one.microstream.storage.types.StorageChannelCountProvider;
 
 
 public final class BookStoreDemo implements HasLogger
 {
-	private static BookStoreDemo instance;
-
-	/**
-	 * @return the single instance of this class
-	 */
-	public static BookStoreDemo getInstance()
-	{
-		return instance;
-	}
-
-
 	/**
 	 * {@link CurrencyUnit} for this demo, US Dollar is used as only currency.
 	 */
@@ -115,6 +105,7 @@ public final class BookStoreDemo implements HasLogger
 
 
 	private final    RandomDataAmount       initialDataAmount;
+	private          int                    channelCount     ;
 	private volatile EmbeddedStorageManager storageManager   ;
 
 	/**
@@ -126,7 +117,22 @@ public final class BookStoreDemo implements HasLogger
 	{
 		super();
 		this.initialDataAmount = initialDataAmount;
-		BookStoreDemo.instance = this;
+		this.channelCount = Math.max(
+			1, // minimum one channel, if only 1 core is available
+			Integer.highestOneBit(Runtime.getRuntime().availableProcessors() - 1)
+		);
+	}
+	
+	public void setChannelCount(final int channelCount)
+	{
+		StorageChannelCountProvider.Validation.validateParameters(channelCount);
+		
+		this.channelCount = channelCount;
+	}
+	
+	public int getChannelCount()
+	{
+		return this.channelCount;
 	}
 
 	/**
@@ -168,10 +174,8 @@ public final class BookStoreDemo implements HasLogger
 
 		final EmbeddedStorageConfigurationBuilder configuration = EmbeddedStorageConfiguration.Builder()
 			.setStorageDirectory("data/storage")
-			.setChannelCount(Math.max(
-			1, // minimum one channel, if only 1 core is available
-			Integer.highestOneBit(Runtime.getRuntime().availableProcessors() - 1)
-		));
+			.setChannelCount(this.channelCount)
+		;
 
 		final EmbeddedStorageFoundation<?> foundation = configuration.createEmbeddedStorageFoundation();
 		foundation.onConnectionFoundation(BinaryHandlersJDK8::registerJDK8TypeHandlers);

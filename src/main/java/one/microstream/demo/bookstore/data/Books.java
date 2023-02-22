@@ -17,12 +17,10 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.QueryBuilder;
 
-import one.microstream.demo.bookstore.BookStoreDemo;
 import one.microstream.demo.bookstore.data.Index.DocumentPopulator;
 import one.microstream.demo.bookstore.data.Index.EntityMatcher;
 import one.microstream.demo.bookstore.util.concurrent.ReadWriteLocked;
 import one.microstream.persistence.types.Persister;
-import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 
 /**
  * Range of all books sold by this company.
@@ -38,18 +36,6 @@ import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 public interface Books
 {
 	/**
-	 * Adds a new book and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.add(book, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param book the new book
-	 */
-	public default void add(final Book book)
-	{
-		this.add(book, BookStoreDemo.getInstance().storageManager());
-	}
-
-	/**
 	 * Adds a new book and stores it with the given persister.
 	 *
 	 * @param book the new book
@@ -57,18 +43,6 @@ public interface Books
 	 * @see #add(Book)
 	 */
 	public void add(Book book, Persister persister);
-
-	/**
-	 * Adds a range of new books and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.addAll(books, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param books the new books
-	 */
-	public default void addAll(final Collection<? extends Book> books)
-	{
-		this.addAll(books, BookStoreDemo.getInstance().storageManager());
-	}
 
 	/**
 	 * Adds a range of new books and stores it with the given persister.

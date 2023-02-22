@@ -6,11 +6,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import one.microstream.demo.bookstore.BookStoreDemo;
 import one.microstream.demo.bookstore.util.concurrent.ReadWriteLocked;
 import one.microstream.persistence.types.Persister;
 import one.microstream.reference.Lazy;
-import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 
 /**
  * All retail shops operated by this company.
@@ -25,18 +23,6 @@ import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 public interface Shops
 {
 	/**
-	 * Adds a new shop and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.add(shop, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param shop the new shop
-	 */
-	public default void add(final Shop shop)
-	{
-		this.add(shop, BookStoreDemo.getInstance().storageManager());
-	}
-
-	/**
 	 * Adds a new shop and stores it with the given persister.
 	 *
 	 * @param shop the new shop
@@ -44,18 +30,6 @@ public interface Shops
 	 * @see #add(Shop)
 	 */
 	public void add(Shop shop, Persister persister);
-
-	/**
-	 * Adds a range of new shops and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.addAll(shops, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param shops the new shops
-	 */
-	public default void addAll(final Collection<? extends Shop> shops)
-	{
-		this.addAll(shops, BookStoreDemo.getInstance().storageManager());
-	}
 
 	/**
 	 * Adds a range of new shops and stores it with the given persister.

@@ -33,7 +33,6 @@ import one.microstream.demo.bookstore.util.concurrent.ReadWriteLocked;
 import one.microstream.demo.bookstore.util.concurrent.ReadWriteLockedStriped;
 import one.microstream.persistence.types.PersistenceStoring;
 import one.microstream.reference.Lazy;
-import one.microstream.storage.embedded.types.EmbeddedStorageManager;
 
 /**
  * All purchases made by all customers in all stores.
@@ -47,18 +46,6 @@ import one.microstream.storage.embedded.types.EmbeddedStorageManager;
  */
 public interface Purchases
 {
-	/**
-	 * Adds a new purchase and stores it with the {@link BookStoreDemo}'s {@link EmbeddedStorageManager}.
-	 * <p>
-	 * This is a synonym for:<pre>this.add(purchase, BookStoreDemo.getInstance().storageManager())</pre>
-	 *
-	 * @param purchase the new purchase
-	 */
-	public default void add(final Purchase purchase)
-	{
-		this.add(purchase, BookStoreDemo.getInstance().storageManager());
-	}
-
 	/**
 	 * Adds a new purchase and stores it with the given persister.
 	 *
@@ -279,16 +266,19 @@ public interface Purchases
 				final PersistenceStoring persister
 			)
 			{
-				final List<Purchase> list = this.shopToPurchases.get(purchase.shop()).get();
-				final Purchase toRemove = list.get(new Random().nextInt(list.size()));
-				
-				final List<Object> changedObjects = new ArrayList<>();
-				addAndRemoveFromMap(this.shopToPurchases,     purchase.shop(),     purchase, toRemove.shop(),     toRemove, changedObjects);
-				addAndRemoveFromMap(this.employeeToPurchases, purchase.employee(), purchase, toRemove.employee(), toRemove, changedObjects);
-				addAndRemoveFromMap(this.customerToPurchases, purchase.customer(), purchase, toRemove.customer(), toRemove, changedObjects);
-				if(persister != null && changedObjects.size() > 0)
+				final List<Purchase> list = Lazy.get(this.shopToPurchases.get(purchase.shop()));
+				if(list != null)
 				{
-					persister.storeAll(changedObjects);
+					final Purchase toRemove = list.get(new Random().nextInt(list.size()));
+					
+					final List<Object> changedObjects = new ArrayList<>();
+					addAndRemoveFromMap(this.shopToPurchases,     purchase.shop(),     purchase, toRemove.shop(),     toRemove, changedObjects);
+					addAndRemoveFromMap(this.employeeToPurchases, purchase.employee(), purchase, toRemove.employee(), toRemove, changedObjects);
+					addAndRemoveFromMap(this.customerToPurchases, purchase.customer(), purchase, toRemove.customer(), toRemove, changedObjects);
+					if(persister != null && changedObjects.size() > 0)
+					{
+						persister.storeAll(changedObjects);
+					}
 				}
 				return this;
 			}
